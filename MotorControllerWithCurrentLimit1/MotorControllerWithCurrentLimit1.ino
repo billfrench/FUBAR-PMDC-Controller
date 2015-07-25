@@ -5,7 +5,7 @@ const int CURRENTPIN = A0;
 const int MOSFETPIN = 15;
 const int numReadings = 3;  // Number of readings to average
 const long TANKMAX = 100000; //fuse is rated at 10,000 ... times that by 10 for the equation
-const int MAXAMPS = 71;
+const int MAXAMPS = 100;
 
 unsigned long thistime;
 unsigned long lasttime;
@@ -17,7 +17,6 @@ int total = 0;                  // the running total
 int averageC = 0;                // the average
 
 void setup() {
-
   Serial.begin(9600);
   pinMode(3, OUTPUT);
   pinMode(2, OUTPUT);
@@ -47,7 +46,7 @@ void loop() {
 
   total = total - readings[index];
   readings[index] = analogRead(CURRENTPIN);
-  if (readings[index] == 1023)   // See if we've maxed the ADC; if so, shut down the PWM!
+  if (readings[index] > 820)   // See if we've maxed the ADC; if so, shut down the PWM! .. 820 is a bit more than 100A
   {
     Timer1.setPwmDuty(MOSFETPIN, 0);
     digitalWrite(2, HIGH);
@@ -68,7 +67,7 @@ void loop() {
   tttout = map(ttt, 200, 850, 0, 1024);
   tttout = constrain(tttout, 0, 1024);
 
-  AMPS = map(averageC, 512, 1021, 0, 83);  //83 is close to the max amps that can be measures with a 50 amp shunt
+  AMPS = map(averageC, 512, 819, 0, 100);  //83 is close to the max amps that can be measures with a 50 amp shunt
   AMPS = constrain(AMPS, 0, 1000);
 
   long i2t = (((AMPS - 40) * (AMPS - 40)) * (timepassed)) / 100000;
