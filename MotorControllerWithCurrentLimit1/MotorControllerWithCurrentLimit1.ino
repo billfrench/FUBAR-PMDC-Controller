@@ -1,11 +1,9 @@
 #include <TimerOne.h>
 
-const int THROTTLEPIN = A4;
-const int CURRENTPIN = A0;
-const int MOSFETPIN = 15;
-const int numReadings = 3;  // Number of readings to average
-const long TANKMAX = 100000; //fuse is rated at 10,000 ... times that by 10 for the equation
-const int MAXAMPS = 100;
+int THROTTLEPIN = A4;
+int CURRENTPIN = A0;
+int MOSFETPIN = 15;
+const int numReadings = 3;
 
 unsigned long thistime;
 unsigned long lasttime;
@@ -17,11 +15,12 @@ int total = 0;                  // the running total
 int averageC = 0;                // the average
 
 void setup() {
+  // put your setup code here, to run once:
   Serial.begin(9600);
-  pinMode(3, OUTPUT);
-  pinMode(2, OUTPUT);
-  pinMode(1, OUTPUT);
-  pinMode(0, OUTPUT);
+  pinMode(3, OUTPUT);  //Tank full LED
+  pinMode(2, OUTPUT);  //Shunt Amp Max LED
+  pinMode(1, OUTPUT);  //Over amps or tank empty LED
+  pinMode(0, OUTPUT);  //Over 40 amps, tank draining LED
   Timer1.initialize(62);
   Timer1.start();
   Timer1.pwm(MOSFETPIN, 0);
@@ -35,18 +34,18 @@ int lasttttout = 0;
 int DEBUG = 0;
 int imin = 600;
 int AMPS = 0;
-long TANK = TANKMAX;
+long TANK = 70000;
 
 int cl = 0;
 
 void loop() {
   lasttime = thistime;
-  thistime = micros();
+  thistime = millis();
   timepassed = thistime - lasttime;
 
   total = total - readings[index];
   readings[index] = analogRead(CURRENTPIN);
-  if (readings[index] > 820)   // See if we've maxed the ADC; if so, shut down the PWM! .. 820 is a bit more than 100A
+  if (readings[index] == 1023)
   {
     Timer1.setPwmDuty(MOSFETPIN, 0);
     digitalWrite(2, HIGH);
@@ -67,10 +66,10 @@ void loop() {
   tttout = map(ttt, 200, 850, 0, 1024);
   tttout = constrain(tttout, 0, 1024);
 
-  AMPS = map(averageC, 512, 819, 0, 100);  //83 is close to the max amps that can be measures with a 50 amp shunt
+  AMPS = map(averageC, 512, 1021, 0, 83);
   AMPS = constrain(AMPS, 0, 1000);
 
-  long i2t = (((AMPS - 40) * (AMPS - 40)) * (timepassed)) / 100000;
+  long i2t = (((AMPS - 40) * (AMPS - 40)) * (timepassed)) / 100;
 
   if (AMPS > 40)
   {
@@ -83,17 +82,17 @@ void loop() {
     digitalWrite(0, LOW);
   }
 
-  if (TANK > TANKMAX)
+  if (TANK > 50000)
   {
-    TANK = TANKMAX;
-    digitalWrite(3, HIGH); // Tank is full!
+    TANK = 50000;
+    digitalWrite(3, HIGH);
   }
   else
   {
     digitalWrite(3, LOW);
   }
 
-  if ((AMPS > MAXAMPS) || (TANK <= 0)) //Check for max amps or empty tank, shutdown PWM if so
+  if ((AMPS > 71) || (TANK < 0))
   {
     Timer1.setPwmDuty(MOSFETPIN, 0);
     digitalWrite(1, HIGH);
